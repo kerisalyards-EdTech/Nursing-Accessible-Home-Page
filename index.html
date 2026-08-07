@@ -10,7 +10,7 @@
     :root {
       --primary:    #095398;
       --light-blue: #24abe2;
-      --purple:     #9a52a0;
+      --purple:     #8a498f;
       --navy:       #051d3c;
       --surface:    #f4f7fb;
       --border:     #dde4ef;
@@ -75,8 +75,8 @@
     .dept-btn[data-dept="NUAS"] { border-color: #24abe2; }
     .dept-btn[data-dept="NUAS"].active { background: #095398; color: #fff; border-color: #095398; }
     .dept-btn[data-dept="NUAS"].active .name { color: #c8e8f7; }
-    .dept-btn[data-dept="NUBS"] { border-color: #9a52a0; }
-    .dept-btn[data-dept="NUBS"].active { background: #9a52a0; color: #fff; border-color: #9a52a0; }
+    .dept-btn[data-dept="NUBS"] { border-color: #8a498f; }
+    .dept-btn[data-dept="NUBS"].active { background: #8a498f; color: #fff; border-color: #8a498f; }
     .dept-btn[data-dept="NUBS"].active .name { color: #e8caea; }
     .dept-btn[data-dept="NUR"]  { border-color: #051d3c; }
     .dept-btn[data-dept="NUR"].active  { background: #051d3c; color: #fff; border-color: #051d3c; }
@@ -117,6 +117,27 @@
     .link-row .col-head {
       font-size: 0.7rem; font-weight: 600; color: var(--muted);
       text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    /* Weekly / schedule content link rows */
+    .week-link-row { display: grid; grid-template-columns: 64px 1fr; gap: 0.5rem; align-items: center; }
+    .week-link-row.has-days-2 { grid-template-columns: 64px 1fr 1fr; }
+    .week-link-row.has-days-3 { grid-template-columns: 64px 1fr 1fr 1fr; }
+    .week-link-row .week-num {
+      font-size: 0.78rem; font-weight: 700; color: var(--navy);
+      font-family: 'Source Serif 4', serif;
+    }
+    .week-link-row input {
+      width: 100%; padding: 0.42rem 0.6rem; border: 1.5px solid var(--border);
+      border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      color: var(--text); background: #fff;
+    }
+    .week-link-row input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(9,83,152,0.12); }
+    .week-link-row input.filled { border-color: #16a34a; background: #f0fdf4; }
+    .week-link-day-labels { display: grid; gap: 0.5rem; padding-left: 64px; margin-bottom: 0.1rem; }
+    .week-link-day-labels span {
+      font-size: 0.68rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
     }
 
     .remove-btn {
@@ -180,7 +201,7 @@
       padding: 1.5rem 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.06); max-width: 760px;
       font-family: Arial, Helvetica, sans-serif; font-size: 0.95rem; line-height: 1.6; color: #1a1a1a;
     }
-    .preview-frame h3 { font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0; }
+    .preview-frame h2 { font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0; }
     .preview-frame a  { color: #095398; text-decoration: none; }
 
     .hidden { display: none !important; }
@@ -354,6 +375,15 @@
       </div>
     </div>
 
+    <!-- Weekly / schedule content links -->
+    <div>
+      <h2 class="panel-title">Weekly Content Links</h2>
+      <p class="panel-subtitle">Paste the Canvas URL for each week (or each week + day) below. These fill in the Week 1, Week 2… links generated in the section above. Leave any blank and a placeholder will be left in the HTML so it's easy to spot and finish later.</p>
+      <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.4rem;" id="week-links-rows"></div>
+    </div>
+
+    <hr class="form-divider" />
+
     <!-- Special links (purple stripe, below weekly/schedule) -->
     <div>
       <h2 class="panel-title">Special Links</h2>
@@ -435,7 +465,7 @@
   // ─────────────────────────────────────────
   const THEMES = {
     NUAS: { bannerBg:'#095398', bannerAccent:'#24abe2', bannerText:'#ffffff', bannerSubtext:'#c8e8f7', label:'Associate Degree Nursing Program' },
-    NUBS: { bannerBg:'#9a52a0', bannerAccent:'#c48dca', bannerText:'#ffffff', bannerSubtext:'#f0ddf2', label:'Bachelor of Science in Nursing Program' },
+    NUBS: { bannerBg:'#8a498f', bannerAccent:'#c48dca', bannerText:'#ffffff', bannerSubtext:'#f0ddf2', label:'Bachelor of Science in Nursing Program' },
     NUR:  { bannerBg:'#051d3c', bannerAccent:'#24abe2', bannerText:'#ffffff', bannerSubtext:'#a8bcd4', label:'Nursing Program' },
   };
 
@@ -460,16 +490,76 @@
       currentFormat = btn.dataset.fmt;
       document.getElementById('weekly-options').classList.toggle('hidden',   currentFormat !== 'weekly');
       document.getElementById('schedule-options').classList.toggle('hidden', currentFormat !== 'schedule');
+      renderWeekLinks();
       update();
     });
   });
 
   document.getElementById('num-days').addEventListener('change', function() {
     document.querySelectorAll('#day-name-fields .day-row')[2].classList.toggle('hidden', this.value !== '3');
+    renderWeekLinks();
     update();
   });
 
+  document.getElementById('num-weeks').addEventListener('input', () => { renderWeekLinks(); update(); });
+  document.getElementById('num-weeks-sched').addEventListener('input', () => { renderWeekLinks(); update(); });
+  document.getElementById('day-name-fields').addEventListener('input', () => { renderWeekLinks(); update(); });
+
   document.addEventListener('input', e => { if (e.target.closest('.form-panel')) update(); });
+
+  document.getElementById('week-links-rows').addEventListener('input', e => {
+    if (e.target.tagName === 'INPUT') e.target.classList.toggle('filled', !!e.target.value.trim());
+  });
+
+  // ─────────────────────────────────────────
+  //  Weekly / schedule link rows
+  // ─────────────────────────────────────────
+  function collectWeekLinkValues() {
+    const map = {};
+    document.querySelectorAll('#week-links-rows input').forEach(inp => {
+      const key = inp.dataset.day !== undefined && inp.dataset.day !== '' ? `${inp.dataset.week}-${inp.dataset.day}` : inp.dataset.week;
+      map[key] = inp.value.trim();
+    });
+    return map;
+  }
+
+  function renderWeekLinks() {
+    const prev = collectWeekLinkValues();
+    const container = document.getElementById('week-links-rows');
+    container.innerHTML = '';
+
+    if (currentFormat === 'weekly') {
+      const numWeeks = Math.max(1, parseInt(val('num-weeks')) || 16);
+      for (let w = 1; w <= numWeeks; w++) {
+        const row = document.createElement('div');
+        row.className = 'week-link-row';
+        const saved = prev[w] || '';
+        row.innerHTML = `<span class="week-num">Week ${w}</span>
+          <input type="url" data-week="${w}" placeholder="Paste Week ${w} page URL" value="${escHtml(saved)}" />`;
+        container.appendChild(row);
+      }
+    } else {
+      const numWeeks = Math.max(1, parseInt(val('num-weeks-sched')) || 16);
+      const days = getDayNames();
+      const dayLabels = document.createElement('div');
+      dayLabels.className = 'week-link-day-labels';
+      dayLabels.style.gridTemplateColumns = days.map(() => '1fr').join(' ');
+      dayLabels.innerHTML = days.map(d => `<span>${escHtml(d)}</span>`).join('');
+      container.appendChild(dayLabels);
+
+      for (let w = 1; w <= numWeeks; w++) {
+        const row = document.createElement('div');
+        row.className = `week-link-row has-days-${days.length}`;
+        const inputs = days.map((d, i) => {
+          const saved = prev[`${w}-${i}`] || '';
+          return `<input type="url" data-week="${w}" data-day="${i}" placeholder="${escHtml(d)} URL" value="${escHtml(saved)}" />`;
+        }).join('');
+        row.innerHTML = `<span class="week-num">Week ${w}</span>${inputs}`;
+        container.appendChild(row);
+      }
+    }
+    document.querySelectorAll('#week-links-rows input').forEach(inp => inp.classList.toggle('filled', !!inp.value.trim()));
+  }
 
   // ─────────────────────────────────────────
   //  Link row management
@@ -580,7 +670,7 @@
       const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
       const ext = isExternal ? ' <span style="font-weight: 400; font-size: 0.85rem;">(opens in new tab)</span>' : '';
       return `  <a href="${escHtml(href)}"${target}
-     style="display: inline-block; background-color: #9a52a0; color: #ffffff; font-weight: 700; font-size: 0.9rem; padding: 0.5rem 1.25rem; border-radius: 4px; text-decoration: none; margin-right: 0.5rem; margin-bottom: 0.5rem;">
+     style="display: inline-block; background-color: #8a498f; color: #ffffff; font-weight: 700; font-size: 0.9rem; padding: 0.5rem 1.25rem; border-radius: 4px; text-decoration: none; margin-right: 0.5rem; margin-bottom: 0.5rem;">
     ${escHtml(l.label)}${ext}
   </a>`;
     }).join('\n');
@@ -608,7 +698,7 @@
       return `
     <li style="margin-bottom: 0.4rem; break-inside: avoid;">
       <a href="${escHtml(href)}"
-         style="display: block; padding: 0.6rem 1rem; background-color: #f3eaf4; color: #051d3c; font-weight: 600; font-size: 0.95rem; border-left: 4px solid #9a52a0; border-radius: 0 4px 4px 0; text-decoration: none;">
+         style="display: block; padding: 0.6rem 1rem; background-color: #f3eaf4; color: #051d3c; font-weight: 600; font-size: 0.95rem; border-left: 4px solid #8a498f; border-radius: 0 4px 4px 0; text-decoration: none;">
         ${escHtml(l.label)}
       </a>
     </li>`;
@@ -621,14 +711,16 @@
   // ─────────────────────────────────────────
   //  Section 4 builders (weekly / schedule)
   // ─────────────────────────────────────────
-  function buildWeeklySectionHTML(numWeeks, specialLinks) {
+  function buildWeeklySectionHTML(numWeeks, specialLinks, weekLinks) {
+    weekLinks = weekLinks || {};
     const half = Math.ceil(numWeeks / 2);
     const liStyle = `style="display: block; padding: 0.6rem 1rem; background-color: #e8f4fb; color: #051d3c; font-weight: 600; font-size: 0.95rem; border-left: 4px solid #24abe2; border-radius: 0 4px 4px 0; text-decoration: none;"`;
     const left  = Array.from({length: half},          (_, i) => i + 1);
     const right = Array.from({length: numWeeks - half},(_, i) => i + half + 1);
-    const makeItems = arr => arr.map(n =>
-      `            <li style="margin-bottom: 0.4rem; break-inside: avoid;"><a href="[WEEK ${n} URL]" ${liStyle}>Week ${n}</a></li>`
-    ).join('\n');
+    const makeItems = arr => arr.map(n => {
+      const href = (weekLinks[n] || '').trim() || `[WEEK ${n} URL]`;
+      return `            <li style="margin-bottom: 0.4rem; break-inside: avoid;"><a href="${escHtml(href)}" ${liStyle}>Week ${n}</a></li>`;
+    }).join('\n');
     return `
   <table role="presentation" style="width: 100%; border-collapse: collapse; border: none;">
     <tbody><tr>
@@ -647,7 +739,8 @@ ${makeItems(right)}
 ${buildSpecialLinksHTML(specialLinks)}`;
   }
 
-  function buildScheduleSectionHTML(days, numWeeks, specialLinks) {
+  function buildScheduleSectionHTML(days, numWeeks, specialLinks, weekLinks) {
+    weekLinks = weekLinks || {};
     const thStyle     = `style="padding: 0.6rem 0.75rem; background-color: #095398; color: #ffffff; font-weight: 700; font-size: 0.9rem; text-align: center; border: 1px solid #24abe2;"`;
     const weekThStyle = `style="padding: 0.6rem 0.75rem; background-color: #051d3c; color: #ffffff; font-weight: 700; font-size: 0.9rem; text-align: center; width: 20%; border: 1px solid #24abe2;"`;
     const tdStyle     = `style="padding: 0.6rem 0.75rem; border: 1px solid #dde4ef; text-align: center; vertical-align: middle; font-size: 0.9rem;"`;
@@ -655,9 +748,12 @@ ${buildSpecialLinksHTML(specialLinks)}`;
     const dayHeaders = days.map(d => `        <th scope="col" ${thStyle}>${escHtml(d)}</th>`).join('\n');
     const rows = Array.from({length: numWeeks}, (_, i) => {
       const w = i + 1;
-      const cells = days.map(d =>
-        `        <td ${tdStyle}><a href="[WEEK ${w} ${d.toUpperCase()} URL]" style="color: #095398; text-decoration: underline;">[Week ${w} ${escHtml(d)} content]</a></td>`
-      ).join('\n');
+      const cells = days.map((d, di) => {
+        const url = (weekLinks[`${w}-${di}`] || '').trim();
+        const href = url || `[WEEK ${w} ${d.toUpperCase()} URL]`;
+        const label = url ? `Week ${w} – ${escHtml(d)}` : `[Week ${w} ${escHtml(d)} content]`;
+        return `        <td ${tdStyle}><a href="${escHtml(href)}" style="color: #095398; text-decoration: underline;">${label}</a></td>`;
+      }).join('\n');
       return `      <tr>\n        <th scope="row" ${weekTdStyle}>${w}</th>\n${cells}\n      </tr>`;
     }).join('\n');
     return `
@@ -692,12 +788,14 @@ ${buildSpecialLinksHTML(specialLinks)}`;
       ? objs.map(o => `\n    <li style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin-bottom: 0.5rem;">${escHtml(o)}</li>`).join('')
       : `\n    <li style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin-bottom: 0.5rem;">[Enter objective here.]</li>`;
 
+    const weekLinkValues = collectWeekLinkValues();
+
     let section4Content, section4Heading;
     if (currentFormat === 'weekly') {
-      section4Content = buildWeeklySectionHTML(Math.max(1, parseInt(val('num-weeks')) || 16), specialLinks);
+      section4Content = buildWeeklySectionHTML(Math.max(1, parseInt(val('num-weeks')) || 16), specialLinks, weekLinkValues);
       section4Heading = 'Weekly Course Materials';
     } else {
-      section4Content = buildScheduleSectionHTML(getDayNames(), Math.max(1, parseInt(val('num-weeks-sched')) || 16), specialLinks);
+      section4Content = buildScheduleSectionHTML(getDayNames(), Math.max(1, parseInt(val('num-weeks-sched')) || 16), specialLinks, weekLinkValues);
       section4Heading = 'Class Schedule';
     }
 
@@ -716,7 +814,7 @@ ${buildPurpleButtonsHTML(resourceLinks)}
 
 <div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h3 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Main Course Links</h3>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Main Course Links</h2>
 
 ${buildBlueButtonsHTML(mainLinks)}
 
@@ -731,7 +829,7 @@ ${buildBlueButtonsHTML(mainLinks)}
 
 <div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h3 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Additional Resources</h3>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Additional Resources</h2>
 
 ${buildNavyButtonsHTML(additionalLinks)}
 
@@ -743,8 +841,8 @@ ${buildNavyButtonsHTML(additionalLinks)}
   Instructor: ${escHtml(f.instr)}
 
   CANVAS COMPATIBILITY: Inline styles only — no <style> blocks,
-  no classes, no JavaScript. Canvas provides h1 and h2; all
-  section headings here use h3.
+  no classes, no JavaScript. Canvas renders the page title as
+  h1, so all section headings here use h2 (no skipped levels).
 
   EDITOR INSTRUCTIONS:
   - Instructor info: edit text inside <p> tags only
@@ -766,7 +864,7 @@ ${buildNavyButtonsHTML(additionalLinks)}
     <p style="margin: 0; font-size: 1rem; color: ${f.theme.bannerSubtext};">${escHtml(f.dept)}${escHtml(f.num)}</p>
   </div>
 
-  <h3 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid ${f.theme.bannerAccent};">Instructor Information</h3>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid ${f.theme.bannerAccent};">Instructor Information</h2>
   <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Instructor:</strong> ${escHtml(f.instr)}</p>
   <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color: #095398; text-decoration: underline;">${escHtml(f.email)}</a></p>
   <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Office:</strong> ${escHtml(f.office)}</p>
@@ -781,7 +879,7 @@ ${buildNavyButtonsHTML(additionalLinks)}
 
 <div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h3 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Course Description</h3>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Course Description</h2>
 
   <p style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin: 0 0 0.75rem 0;">${escHtml(f.desc)}</p>
 
@@ -794,7 +892,7 @@ ${mainLinksSection}
 
 <div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h3 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">${escHtml(section4Heading)}</h3>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">${escHtml(section4Heading)}</h2>
 ${section4Content}
 
 </div>
@@ -806,7 +904,7 @@ ${additionalSection}
 
 <div style="border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h3 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Course Objectives</h3>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Course Objectives</h2>
 
   <p style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin: 0 0 0.75rem 0;">
     Upon completion of the course, the student will be able to:
@@ -838,27 +936,32 @@ ${additionalSection}
       : `<li style="font-size:0.95rem;color:#1a1a1a;line-height:1.6;margin-bottom:0.5rem;">[Enter objective here.]</li>`;
 
     const resourcesPreview = resourceLinks.length
-      ? `<div style="margin-top:1rem;">${resourceLinks.map(l => `<a href="#" style="display:inline-block;background-color:#9a52a0;color:#fff;font-weight:700;font-size:0.9rem;padding:0.5rem 1.25rem;border-radius:4px;text-decoration:none;margin-right:0.5rem;margin-bottom:0.5rem;">${escHtml(l.label)}</a>`).join('')}</div>`
+      ? `<div style="margin-top:1rem;">${resourceLinks.map(l => `<a href="#" style="display:inline-block;background-color:#8a498f;color:#fff;font-weight:700;font-size:0.9rem;padding:0.5rem 1.25rem;border-radius:4px;text-decoration:none;margin-right:0.5rem;margin-bottom:0.5rem;">${escHtml(l.label)}</a>`).join('')}</div>`
       : '';
 
     const mainLinksPreview = mainLinks.length
-      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h3>Main Course Links</h3>${mainLinks.map(l => previewBtn(l.label,'#095398')).join('')}</div>`
+      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h2>Main Course Links</h2>${mainLinks.map(l => previewBtn(l.label,'#095398')).join('')}</div>`
       : '';
 
     const additionalPreview = additionalLinks.length
-      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h3>Additional Resources</h3>${additionalLinks.map(l => previewBtn(l.label,'#051d3c')).join('')}</div>`
+      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h2>Additional Resources</h2>${additionalLinks.map(l => previewBtn(l.label,'#051d3c')).join('')}</div>`
       : '';
 
     const specialPreview = specialLinks.length
-      ? specialLinks.map(l => `<div style="padding:0.6rem 1rem;background-color:#f3eaf4;color:#051d3c;font-weight:600;font-size:0.95rem;border-left:4px solid #9a52a0;border-radius:0 4px 4px 0;margin-bottom:0.4rem;">${escHtml(l.label)}</div>`).join('')
+      ? specialLinks.map(l => `<div style="padding:0.6rem 1rem;background-color:#f3eaf4;color:#051d3c;font-weight:600;font-size:0.95rem;border-left:4px solid #8a498f;border-radius:0 4px 4px 0;margin-bottom:0.4rem;">${escHtml(l.label)}</div>`).join('')
       : '';
 
+    const wlv = collectWeekLinkValues();
     let section4Preview, section4Heading;
     if (currentFormat === 'weekly') {
       const nw = Math.max(1, parseInt(val('num-weeks')) || 16);
       const half = Math.ceil(nw/2);
       const liS = `display:block;padding:0.6rem 1rem;background-color:#e8f4fb;color:#051d3c;font-weight:600;font-size:0.95rem;border-left:4px solid #24abe2;border-radius:0 4px 4px 0;`;
-      const makeI = arr => arr.map(n=>`<li style="margin-bottom:0.4rem;"><div style="${liS}">Week ${n}</div></li>`).join('');
+      const makeI = arr => arr.map(n=>{
+        const filled = !!(wlv[n] && wlv[n].trim());
+        const style = filled ? `${liS}border-left-color:#16a34a;` : liS;
+        return `<li style="margin-bottom:0.4rem;"><div style="${style}">Week ${n}${filled ? ' <span style="font-weight:400;font-size:0.75rem;color:#16a34a;">(linked)</span>' : ''}</div></li>`;
+      }).join('');
       section4Preview = `<table role="presentation" style="width:100%;border-collapse:collapse;border:none;"><tbody><tr>
         <td style="width:50%;vertical-align:top;padding-right:0.5rem;border:none;"><ul style="list-style:none;margin:0;padding:0;">${makeI(Array.from({length:half},(_,i)=>i+1))}</ul></td>
         <td style="width:50%;vertical-align:top;padding-left:0.5rem;border:none;"><ul style="list-style:none;margin:0;padding:0;">${makeI(Array.from({length:nw-half},(_,i)=>i+half+1))}</ul></td>
@@ -870,11 +973,15 @@ ${additionalSection}
       const thS  = `padding:0.6rem 0.75rem;background-color:#095398;color:#fff;font-weight:700;font-size:0.9rem;text-align:center;border:1px solid #24abe2;`;
       const wThS = `padding:0.6rem 0.75rem;background-color:#051d3c;color:#fff;font-weight:700;font-size:0.9rem;text-align:center;width:20%;border:1px solid #24abe2;`;
       const tdS  = `padding:0.6rem 0.75rem;border:1px solid #dde4ef;text-align:center;font-size:0.9rem;color:#095398;`;
+      const tdSFilled = `padding:0.6rem 0.75rem;border:1px solid #dde4ef;text-align:center;font-size:0.9rem;color:#16a34a;font-weight:600;`;
       const wTdS = `padding:0.6rem 0.75rem;border:1px solid #dde4ef;text-align:center;font-weight:700;color:#051d3c;background-color:#f0f4fb;font-size:0.9rem;`;
       const hdrs = days.map(d=>`<th style="${thS}">${escHtml(d)}</th>`).join('');
       const rows = Array.from({length:nw},(_,i)=>{
         const w=i+1;
-        return `<tr><th style="${wTdS}">${w}</th>${days.map(d=>`<td style="${tdS}">Week ${w} ${escHtml(d)}</td>`).join('')}</tr>`;
+        return `<tr><th style="${wTdS}">${w}</th>${days.map((d,di)=>{
+          const filled = !!(wlv[`${w}-${di}`] && wlv[`${w}-${di}`].trim());
+          return `<td style="${filled ? tdSFilled : tdS}">${filled ? 'Linked' : `Week ${w} ${escHtml(d)}`}</td>`;
+        }).join('')}</tr>`;
       }).join('');
       section4Preview = `<table style="width:100%;border-collapse:collapse;border:1px solid #dde4ef;">
         <thead><tr><th style="${wThS}">Week</th>${hdrs}</tr></thead>
@@ -890,7 +997,7 @@ ${additionalSection}
           <p style="margin:0 0 0.2rem 0;font-size:1.5rem;font-weight:700;color:${f.theme.bannerText};">${escHtml(f.name)}</p>
           <p style="margin:0;font-size:1rem;color:${f.theme.bannerSubtext};">${escHtml(f.dept)}${escHtml(f.num)}</p>
         </div>
-        <h3 style="font-size:1rem;font-weight:700;color:#051d3c;margin:0 0 0.75rem 0;padding-bottom:0.4rem;border-bottom:2px solid ${f.theme.bannerAccent};">Instructor Information</h3>
+        <h2 style="font-size:1rem;font-weight:700;color:#051d3c;margin:0 0 0.75rem 0;padding-bottom:0.4rem;border-bottom:2px solid ${f.theme.bannerAccent};">Instructor Information</h2>
         <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Instructor:</strong> ${escHtml(f.instr)}</p>
         <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color:#095398;">${escHtml(f.email)}</a></p>
         <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Office:</strong> ${escHtml(f.office)}</p>
@@ -898,17 +1005,17 @@ ${additionalSection}
         ${resourcesPreview}
       </div>
       <div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;">
-        <h3>Course Description</h3>
+        <h2>Course Description</h2>
         <p style="font-size:0.95rem;color:#1a1a1a;line-height:1.6;margin:0;">${escHtml(f.desc)}</p>
       </div>
       ${mainLinksPreview}
       <div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;">
-        <h3>${escHtml(section4Heading)}</h3>
+        <h2>${escHtml(section4Heading)}</h2>
         ${section4Preview}
       </div>
       ${additionalPreview}
       <div style="border-top:3px solid #095398;padding-top:1.25rem;">
-        <h3>Course Objectives</h3>
+        <h2>Course Objectives</h2>
         <p style="font-size:0.95rem;color:#1a1a1a;line-height:1.6;margin:0 0 0.75rem 0;">Upon completion of the course, the student will be able to:</p>
         <ul style="margin:0;padding:0 0 0 1.5rem;">${objItems}</ul>
       </div>`;
@@ -935,6 +1042,7 @@ ${additionalSection}
   }
 
   function update() { document.getElementById('preview-frame').innerHTML = buildPreview(); }
+  renderWeekLinks();
   update();
 </script>
 </body>
