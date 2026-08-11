@@ -663,7 +663,7 @@
       const ext = isExternal ? ' <span style="font-size: 0.85rem;">(opens in new tab)</span>' : '';
       return `
     <li style="border-left: 4px solid ${accent}; padding: 0.5rem 0 0.5rem 0.75rem; margin-bottom: 0.5rem;">
-      <a href="${escHtml(href)}"${target} style="color: ${accent}; font-size: 1rem; text-decoration: underline;"><strong>${escHtml(l.label)}</strong></a>${ext}
+      <a href="${escHtml(href)}"${target} style="font-size: 1rem; text-decoration: underline;"><strong>${escHtml(l.label)}</strong></a>${ext}
     </li>`;
     }).join('');
     return `
@@ -709,7 +709,7 @@
       const href = (weekLinks[n] || '').trim() || `[WEEK ${n} URL]`;
       return `
     <li style="border-left: 4px solid #24abe2; padding: 0.5rem 0 0.5rem 0.75rem; margin-bottom: 0.5rem;">
-      <a href="${escHtml(href)}" style="color: #051d3c; font-size: 1rem; text-decoration: underline;"><strong>Week ${n}</strong></a>
+      <a href="${escHtml(href)}" style="font-size: 1rem; text-decoration: underline;"><strong>Week ${n}</strong></a>
     </li>`;
     };
     const left  = Array.from({length: half}, (_, i) => i + 1).map(makeItem).join('');
@@ -737,7 +737,7 @@ ${buildSpecialLinksHTML(specialLinks)}`;
         const url = (weekLinks[`${w}-${di}`] || '').trim();
         const href = url || `[WEEK ${w} ${d.toUpperCase()} URL]`;
         const label = url ? `Week ${w} – ${escHtml(d)}` : `[Week ${w} ${escHtml(d)} content]`;
-        return `        <td ${tdStyle}><a href="${escHtml(href)}" style="color: #095398; text-decoration: underline;">${label}</a></td>`;
+        return `        <td ${tdStyle}><a href="${escHtml(href)}" style="text-decoration: underline;">${label}</a></td>`;
       }).join('\n');
       return `      <tr>\n        <th scope="row" ${weekTdStyle}><strong>${w}</strong></th>\n${cells}\n      </tr>`;
     }).join('\n');
@@ -830,9 +830,9 @@ ${buildNavyButtonsHTML(additionalLinks)}
 
   <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid ${f.theme.bannerAccent};"><strong>Instructor Information</strong></h2>
   <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Instructor:</strong> ${escHtml(f.instr)}</p>
-  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color: #095398; text-decoration: underline;">${escHtml(f.email)}</a></p>
+  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="text-decoration: underline;">${escHtml(f.email)}</a></p>
   <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Office:</strong> ${escHtml(f.office)}</p>
-  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Phone:</strong> <a href="tel:+1${phoneDigits}" style="color: #095398; text-decoration: underline;">${escHtml(f.phone)}</a></p>${resourcesBlock}
+  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Phone:</strong> <a href="tel:+1${phoneDigits}" style="text-decoration: underline;">${escHtml(f.phone)}</a></p>${resourcesBlock}
 
 </div>
 
@@ -898,9 +898,14 @@ ${additionalSection}
   // ─────────────────────────────────────────
   //  Preview
   // ─────────────────────────────────────────
+  // Links intentionally carry NO custom color, matching the real output —
+  // Canvas's own link color renders both before and after an instructor
+  // edits them, so nothing can go out of sync. Only the border accent
+  // (on the <li>, never touched by Canvas's link tool) stays brand-colored.
+  const LINK_COLOR = '#0374b5';
   function previewLinkList(links, accent) {
     if (!links.length) return '';
-    const items = links.map(l => `<li style="border-left:4px solid ${accent};padding:0.5rem 0 0.5rem 0.75rem;margin-bottom:0.5rem;"><a href="#" style="color:${accent};font-size:1rem;text-decoration:underline;font-weight:700;">${escHtml(l.label)}</a></li>`).join('');
+    const items = links.map(l => `<li style="border-left:4px solid ${accent};padding:0.5rem 0 0.5rem 0.75rem;margin-bottom:0.5rem;"><a href="#" style="color:${LINK_COLOR};font-size:1rem;text-decoration:underline;font-weight:700;">${escHtml(l.label)}</a></li>`).join('');
     return `<ul style="list-style:none;margin:0;padding:0;">${items}</ul>`;
   }
 
@@ -938,7 +943,7 @@ ${additionalSection}
       const makeItem = n => {
         const filled = !!(wlv[n] && wlv[n].trim());
         const accent = filled ? '#16a34a' : '#24abe2';
-        return `<li style="border-left:4px solid ${accent};padding:0.5rem 0 0.5rem 0.75rem;margin-bottom:0.5rem;"><a href="#" style="color:#051d3c;font-size:1rem;text-decoration:underline;font-weight:700;">Week ${n}</a>${filled ? ' <span style="font-size:0.75rem;color:#16a34a;">(linked)</span>' : ''}</li>`;
+        return `<li style="border-left:4px solid ${accent};padding:0.5rem 0 0.5rem 0.75rem;margin-bottom:0.5rem;"><a href="#" style="color:${LINK_COLOR};font-size:1rem;text-decoration:underline;font-weight:700;">Week ${n}</a>${filled ? ' <span style="font-size:0.75rem;color:#16a34a;">(linked)</span>' : ''}</li>`;
       };
       const left  = Array.from({length: half}, (_, i) => i + 1).map(makeItem).join('');
       const right = Array.from({length: nw - half}, (_, i) => i + half + 1).map(makeItem).join('');
@@ -979,7 +984,7 @@ ${additionalSection}
         </div>
         <h2 style="font-size:1rem;font-weight:700;color:#051d3c;margin:0 0 0.75rem 0;padding-bottom:0.4rem;border-bottom:2px solid ${f.theme.bannerAccent};">Instructor Information</h2>
         <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Instructor:</strong> ${escHtml(f.instr)}</p>
-        <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color:#095398;">${escHtml(f.email)}</a></p>
+        <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color:${LINK_COLOR};">${escHtml(f.email)}</a></p>
         <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Office:</strong> ${escHtml(f.office)}</p>
         <p style="margin:0.3rem 0;font-size:0.95rem;"><strong>Phone:</strong> ${escHtml(f.phone)}</p>
         ${resourcesPreview}
