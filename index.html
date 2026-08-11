@@ -648,64 +648,47 @@
   //  Button block builders
   // ─────────────────────────────────────────
 
-  // Blue buttons (Main Course Links)
-  function buildBlueButtonsHTML(links) {
-    return links.map(l => {
-      const href = l.url || '[PASTE URL HERE]';
-      const isExternal = l.url && !l.url.includes('instructure.com') && !l.url.startsWith('#');
-      const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
-      const ext = isExternal ? ' <span style="font-weight: 400; font-size: 0.85rem;">(opens in new tab)</span>' : '';
-      return `  <a href="${escHtml(href)}"${target}
-     style="display: block; background-color: #095398; color: #ffffff; font-weight: 700; font-size: 1rem; padding: 0.75rem 1.25rem; border-radius: 4px; text-decoration: none; margin-bottom: 0.6rem;">
-    ${escHtml(l.label)}${ext}
-  </a>`;
-    }).join('\n');
-  }
-
-  // Purple buttons (Course Resources)
-  function buildPurpleButtonsHTML(links) {
-    return links.map(l => {
-      const href = l.url || '[PASTE URL HERE]';
-      const isExternal = l.url && !l.url.includes('instructure.com') && !l.url.startsWith('#');
-      const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
-      const ext = isExternal ? ' <span style="font-weight: 400; font-size: 0.85rem;">(opens in new tab)</span>' : '';
-      return `  <a href="${escHtml(href)}"${target}
-     style="display: inline-block; background-color: #8a498f; color: #ffffff; font-weight: 700; font-size: 0.9rem; padding: 0.5rem 1.25rem; border-radius: 4px; text-decoration: none; margin-right: 0.5rem; margin-bottom: 0.5rem;">
-    ${escHtml(l.label)}${ext}
-  </a>`;
-    }).join('\n');
-  }
-
-  // Navy buttons (Additional Resources)
-  function buildNavyButtonsHTML(links) {
-    return links.map(l => {
-      const href = l.url || '[PASTE URL HERE]';
-      const isExternal = l.url && !l.url.includes('instructure.com') && !l.url.startsWith('#');
-      const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
-      const ext = isExternal ? ' <span style="font-weight: 400; font-size: 0.85rem;">(opens in new tab)</span>' : '';
-      return `  <a href="${escHtml(href)}"${target}
-     style="display: block; background-color: #051d3c; color: #ffffff; font-weight: 700; font-size: 1rem; padding: 0.75rem 1.25rem; border-radius: 4px; text-decoration: none; margin-bottom: 0.6rem;">
-    ${escHtml(l.label)}${ext}
-  </a>`;
-    }).join('\n');
-  }
-
-  // Purple stripe links (Special Links, below weekly/schedule)
-  function buildSpecialLinksHTML(links) {
+  // Shared plain-link-list builder. Deliberately avoids background-color,
+  // padding-as-button, and border-radius on the <a> itself, since those are
+  // exactly the inline styles most likely to get flattened when an instructor
+  // edits a link through Canvas's visual Rich Content Editor instead of the
+  // HTML source. A colored left border on the <li> plus bold underlined link
+  // text survives casual editing and still reads as "on brand."
+  function buildLinkListHTML(links, accent, marginTop) {
     if (!links.length) return '';
     const items = links.map(l => {
       const href = l.url || '[PASTE URL HERE]';
+      const isExternal = l.url && !l.url.includes('instructure.com') && !l.url.startsWith('#');
+      const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+      const ext = isExternal ? ' <span style="font-size: 0.85rem;">(opens in new tab)</span>' : '';
       return `
-    <li style="margin-bottom: 0.4rem; break-inside: avoid;">
-      <a href="${escHtml(href)}"
-         style="display: block; padding: 0.6rem 1rem; background-color: #f3eaf4; color: #051d3c; font-weight: 600; font-size: 0.95rem; border-left: 4px solid #8a498f; border-radius: 0 4px 4px 0; text-decoration: none;">
-        ${escHtml(l.label)}
-      </a>
+    <li style="border-left: 4px solid ${accent}; padding: 0.5rem 0 0.5rem 0.75rem; margin-bottom: 0.5rem;">
+      <a href="${escHtml(href)}"${target} style="color: ${accent}; font-size: 1rem; text-decoration: underline;"><strong>${escHtml(l.label)}</strong></a>${ext}
     </li>`;
     }).join('');
     return `
-  <ul style="list-style: none; margin: 1rem 0 0 0; padding: 0;">${items}
+  <ul style="list-style: none; margin: ${marginTop || '0'} 0 0 0; padding: 0;">${items}
   </ul>`;
+  }
+
+  // Main Course Links
+  function buildBlueButtonsHTML(links) {
+    return buildLinkListHTML(links, '#095398');
+  }
+
+  // Course Resources (shown in the instructor header area)
+  function buildPurpleButtonsHTML(links) {
+    return buildLinkListHTML(links, '#8a498f');
+  }
+
+  // Additional Resources
+  function buildNavyButtonsHTML(links) {
+    return buildLinkListHTML(links, '#051d3c');
+  }
+
+  // Special Links (below weekly/schedule)
+  function buildSpecialLinksHTML(links) {
+    return buildLinkListHTML(links, '#8a498f', '1rem');
   }
 
   // ─────────────────────────────────────────
@@ -713,29 +696,31 @@
   // ─────────────────────────────────────────
   function buildWeeklySectionHTML(numWeeks, specialLinks, weekLinks) {
     weekLinks = weekLinks || {};
+    // Two floated <ul>s instead of a layout <table> — float/width/overflow
+    // are all on Canvas's confirmed-safe inline style allowlist (unlike
+    // font-weight etc.), so this survives save/re-save. No fixed pixel
+    // widths, so on a narrow screen the columns just narrow and the link
+    // text wraps instead of forcing horizontal scroll (WCAG 1.4.10 Reflow).
+    // Source order is still week 1 → numWeeks straight through (left column
+    // fully, then right column), so screen reader reading order matches the
+    // visual order (WCAG 1.3.2 Meaningful Sequence).
     const half = Math.ceil(numWeeks / 2);
-    const liStyle = `style="display: block; padding: 0.6rem 1rem; background-color: #e8f4fb; color: #051d3c; font-weight: 600; font-size: 0.95rem; border-left: 4px solid #24abe2; border-radius: 0 4px 4px 0; text-decoration: none;"`;
-    const left  = Array.from({length: half},          (_, i) => i + 1);
-    const right = Array.from({length: numWeeks - half},(_, i) => i + half + 1);
-    const makeItems = arr => arr.map(n => {
+    const makeItem = n => {
       const href = (weekLinks[n] || '').trim() || `[WEEK ${n} URL]`;
-      return `            <li style="margin-bottom: 0.4rem; break-inside: avoid;"><a href="${escHtml(href)}" ${liStyle}>Week ${n}</a></li>`;
-    }).join('\n');
+      return `
+    <li style="border-left: 4px solid #24abe2; padding: 0.5rem 0 0.5rem 0.75rem; margin-bottom: 0.5rem;">
+      <a href="${escHtml(href)}" style="color: #051d3c; font-size: 1rem; text-decoration: underline;"><strong>Week ${n}</strong></a>
+    </li>`;
+    };
+    const left  = Array.from({length: half}, (_, i) => i + 1).map(makeItem).join('');
+    const right = Array.from({length: numWeeks - half}, (_, i) => i + half + 1).map(makeItem).join('');
     return `
-  <table role="presentation" style="width: 100%; border-collapse: collapse; border: none;">
-    <tbody><tr>
-      <td style="width: 50%; vertical-align: top; padding-right: 0.5rem; border: none;">
-        <ul style="list-style: none; margin: 0; padding: 0;">
-${makeItems(left)}
-        </ul>
-      </td>
-      <td style="width: 50%; vertical-align: top; padding-left: 0.5rem; border: none;">
-        <ul style="list-style: none; margin: 0; padding: 0;">
-${makeItems(right)}
-        </ul>
-      </td>
-    </tr></tbody>
-  </table>
+  <div style="overflow: hidden;">
+    <ul style="list-style: none; margin: 0; padding: 0; float: left; width: 48%;">${left}
+    </ul>
+    <ul style="list-style: none; margin: 0 0 0 4%; padding: 0; float: left; width: 48%;">${right}
+    </ul>
+  </div>
 ${buildSpecialLinksHTML(specialLinks)}`;
   }
 
@@ -745,7 +730,7 @@ ${buildSpecialLinksHTML(specialLinks)}`;
     const weekThStyle = `style="padding: 0.6rem 0.75rem; background-color: #051d3c; color: #ffffff; font-weight: 700; font-size: 0.9rem; text-align: center; width: 20%; border: 1px solid #24abe2;"`;
     const tdStyle     = `style="padding: 0.6rem 0.75rem; border: 1px solid #dde4ef; text-align: center; vertical-align: middle; font-size: 0.9rem;"`;
     const weekTdStyle = `style="padding: 0.6rem 0.75rem; border: 1px solid #dde4ef; text-align: center; font-weight: 700; color: #051d3c; background-color: #f0f4fb; font-size: 0.9rem;"`;
-    const dayHeaders = days.map(d => `        <th scope="col" ${thStyle}>${escHtml(d)}</th>`).join('\n');
+    const dayHeaders = days.map(d => `        <th scope="col" ${thStyle}><strong>${escHtml(d)}</strong></th>`).join('\n');
     const rows = Array.from({length: numWeeks}, (_, i) => {
       const w = i + 1;
       const cells = days.map((d, di) => {
@@ -754,13 +739,13 @@ ${buildSpecialLinksHTML(specialLinks)}`;
         const label = url ? `Week ${w} – ${escHtml(d)}` : `[Week ${w} ${escHtml(d)} content]`;
         return `        <td ${tdStyle}><a href="${escHtml(href)}" style="color: #095398; text-decoration: underline;">${label}</a></td>`;
       }).join('\n');
-      return `      <tr>\n        <th scope="row" ${weekTdStyle}>${w}</th>\n${cells}\n      </tr>`;
+      return `      <tr>\n        <th scope="row" ${weekTdStyle}><strong>${w}</strong></th>\n${cells}\n      </tr>`;
     }).join('\n');
     return `
   <table style="width: 100%; border-collapse: collapse; border: 1px solid #dde4ef;">
     <thead>
       <tr>
-        <th scope="col" ${weekThStyle}>Week</th>
+        <th scope="col" ${weekThStyle}><strong>Week</strong></th>
 ${dayHeaders}
       </tr>
     </thead>
@@ -809,12 +794,12 @@ ${buildPurpleButtonsHTML(resourceLinks)}
     const mainLinksSection = mainLinks.length ? `
 
 <!-- ═══════════════════════════════════════════
-     SECTION 2: MAIN COURSE LINKS
+     SECTION 3: MAIN COURSE LINKS
      ═══════════════════════════════════════════ -->
 
 <div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Main Course Links</h2>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;"><strong>Main Course Links</strong></h2>
 
 ${buildBlueButtonsHTML(mainLinks)}
 
@@ -829,13 +814,71 @@ ${buildBlueButtonsHTML(mainLinks)}
 
 <div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
 
-  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Additional Resources</h2>
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;"><strong>Additional Resources</strong></h2>
 
 ${buildNavyButtonsHTML(additionalLinks)}
 
 </div>` : '';
 
-    return `<!-- ============================================================
+    return `<div style="border-bottom: 3px solid ${f.theme.bannerAccent}; padding-bottom: 1.5rem; margin-bottom: 2rem;">
+
+  <div style="background-color: ${f.theme.bannerBg}; border-radius: 6px; padding: 1.5rem 2rem; margin-bottom: 1.25rem;">
+    <p style="margin: 0 0 0.25rem 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: ${f.theme.bannerSubtext};"><strong>${escHtml(f.theme.label.toUpperCase())}</strong></p>
+    <p style="margin: 0 0 0.2rem 0; font-size: 1.5rem; font-weight: 700; color: ${f.theme.bannerText};"><strong>${escHtml(f.name)}</strong></p>
+    <p style="margin: 0; font-size: 1rem; color: ${f.theme.bannerSubtext};">${escHtml(f.dept)}${escHtml(f.num)}</p>
+  </div>
+
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid ${f.theme.bannerAccent};"><strong>Instructor Information</strong></h2>
+  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Instructor:</strong> ${escHtml(f.instr)}</p>
+  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color: #095398; text-decoration: underline;">${escHtml(f.email)}</a></p>
+  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Office:</strong> ${escHtml(f.office)}</p>
+  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Phone:</strong> <a href="tel:+1${phoneDigits}" style="color: #095398; text-decoration: underline;">${escHtml(f.phone)}</a></p>${resourcesBlock}
+
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SECTION 2: COURSE DESCRIPTION
+     ═══════════════════════════════════════════ -->
+
+<div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
+
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;"><strong>Course Description</strong></h2>
+
+  <p style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin: 0 0 0.75rem 0;">${escHtml(f.desc)}</p>
+
+</div>
+${mainLinksSection}
+
+<!-- ═══════════════════════════════════════════
+     SECTION 4: ${section4Heading.toUpperCase()}
+     ═══════════════════════════════════════════ -->
+
+<div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
+
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;"><strong>${escHtml(section4Heading)}</strong></h2>
+${section4Content}
+
+</div>
+${additionalSection}
+
+<!-- ═══════════════════════════════════════════
+     SECTION 6: COURSE OBJECTIVES
+     ═══════════════════════════════════════════ -->
+
+<div style="border-top: 3px solid #095398; padding-top: 1.25rem;">
+
+  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;"><strong>Course Objectives</strong></h2>
+
+  <p style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin: 0 0 0.75rem 0;">
+    Upon completion of the course, the student will be able to:
+  </p>
+
+  <ul style="margin: 0; padding: 0 0 0 1.5rem;">${objItems}
+  </ul>
+
+</div>
+
+<!-- ============================================================
   CANVAS LMS – ACCESSIBLE COURSE HOMEPAGE
   ${escHtml(f.dept)} ${escHtml(f.num)}: ${escHtml(f.name)}
   Instructor: ${escHtml(f.instr)}
@@ -849,78 +892,16 @@ ${buildNavyButtonsHTML(additionalLinks)}
   - Course description: edit text inside the <p> tag only
   - Objectives: copy or delete <li> blocks in the final section
   - Do NOT change any style="" attribute values
-  ============================================================ -->
-
-
-<!-- ═══════════════════════════════════════════
-     SECTION 1: INSTRUCTOR HEADER
-     ═══════════════════════════════════════════ -->
-
-<div style="border-bottom: 3px solid ${f.theme.bannerAccent}; padding-bottom: 1.5rem; margin-bottom: 2rem;">
-
-  <div style="background-color: ${f.theme.bannerBg}; border-radius: 6px; padding: 1.5rem 2rem; margin-bottom: 1.25rem;">
-    <p style="margin: 0 0 0.25rem 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: ${f.theme.bannerSubtext};">${escHtml(f.theme.label)}</p>
-    <p style="margin: 0 0 0.2rem 0; font-size: 1.5rem; font-weight: 700; color: ${f.theme.bannerText};">${escHtml(f.name)}</p>
-    <p style="margin: 0; font-size: 1rem; color: ${f.theme.bannerSubtext};">${escHtml(f.dept)}${escHtml(f.num)}</p>
-  </div>
-
-  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid ${f.theme.bannerAccent};">Instructor Information</h2>
-  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Instructor:</strong> ${escHtml(f.instr)}</p>
-  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Email:</strong> <a href="mailto:${escHtml(f.email)}" style="color: #095398; text-decoration: underline;">${escHtml(f.email)}</a></p>
-  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Office:</strong> ${escHtml(f.office)}</p>
-  <p style="margin: 0.3rem 0; font-size: 0.95rem; color: #1a1a1a;"><strong>Phone:</strong> <a href="tel:+1${phoneDigits}" style="color: #095398; text-decoration: underline;">${escHtml(f.phone)}</a></p>${resourcesBlock}
-
-</div>
-
-
-<!-- ═══════════════════════════════════════════
-     SECTION 2: COURSE DESCRIPTION
-     ═══════════════════════════════════════════ -->
-
-<div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
-
-  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Course Description</h2>
-
-  <p style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin: 0 0 0.75rem 0;">${escHtml(f.desc)}</p>
-
-</div>
-${mainLinksSection}
-
-<!-- ═══════════════════════════════════════════
-     SECTION 4: ${section4Heading.toUpperCase()}
-     ═══════════════════════════════════════════ -->
-
-<div style="margin-bottom: 2rem; border-top: 3px solid #095398; padding-top: 1.25rem;">
-
-  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">${escHtml(section4Heading)}</h2>
-${section4Content}
-
-</div>
-${additionalSection}
-
-<!-- ═══════════════════════════════════════════
-     SECTION 6: COURSE OBJECTIVES
-     ═══════════════════════════════════════════ -->
-
-<div style="border-top: 3px solid #095398; padding-top: 1.25rem;">
-
-  <h2 style="font-size: 1rem; font-weight: 700; color: #051d3c; margin: 0 0 1rem 0;">Course Objectives</h2>
-
-  <p style="font-size: 0.95rem; color: #1a1a1a; line-height: 1.6; margin: 0 0 0.75rem 0;">
-    Upon completion of the course, the student will be able to:
-  </p>
-
-  <ul style="margin: 0; padding: 0 0 0 1.5rem;">${objItems}
-  </ul>
-
-</div>`;
+  ============================================================ -->`;
   }
 
   // ─────────────────────────────────────────
   //  Preview
   // ─────────────────────────────────────────
-  function previewBtn(label, bg) {
-    return `<div style="background-color:${bg};color:#fff;font-weight:700;padding:0.75rem 1.25rem;border-radius:4px;margin-bottom:0.6rem;">${escHtml(label)}</div>`;
+  function previewLinkList(links, accent) {
+    if (!links.length) return '';
+    const items = links.map(l => `<li style="border-left:4px solid ${accent};padding:0.5rem 0 0.5rem 0.75rem;margin-bottom:0.5rem;"><a href="#" style="color:${accent};font-size:1rem;text-decoration:underline;font-weight:700;">${escHtml(l.label)}</a></li>`).join('');
+    return `<ul style="list-style:none;margin:0;padding:0;">${items}</ul>`;
   }
 
   function buildPreview() {
@@ -936,36 +917,35 @@ ${additionalSection}
       : `<li style="font-size:0.95rem;color:#1a1a1a;line-height:1.6;margin-bottom:0.5rem;">[Enter objective here.]</li>`;
 
     const resourcesPreview = resourceLinks.length
-      ? `<div style="margin-top:1rem;">${resourceLinks.map(l => `<a href="#" style="display:inline-block;background-color:#8a498f;color:#fff;font-weight:700;font-size:0.9rem;padding:0.5rem 1.25rem;border-radius:4px;text-decoration:none;margin-right:0.5rem;margin-bottom:0.5rem;">${escHtml(l.label)}</a>`).join('')}</div>`
+      ? `<div style="margin-top:1rem;">${previewLinkList(resourceLinks, '#8a498f')}</div>`
       : '';
 
     const mainLinksPreview = mainLinks.length
-      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h2>Main Course Links</h2>${mainLinks.map(l => previewBtn(l.label,'#095398')).join('')}</div>`
+      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h2>Main Course Links</h2>${previewLinkList(mainLinks, '#095398')}</div>`
       : '';
 
     const additionalPreview = additionalLinks.length
-      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h2>Additional Resources</h2>${additionalLinks.map(l => previewBtn(l.label,'#051d3c')).join('')}</div>`
+      ? `<div style="margin-bottom:2rem;border-top:3px solid #095398;padding-top:1.25rem;"><h2>Additional Resources</h2>${previewLinkList(additionalLinks, '#051d3c')}</div>`
       : '';
 
-    const specialPreview = specialLinks.length
-      ? specialLinks.map(l => `<div style="padding:0.6rem 1rem;background-color:#f3eaf4;color:#051d3c;font-weight:600;font-size:0.95rem;border-left:4px solid #8a498f;border-radius:0 4px 4px 0;margin-bottom:0.4rem;">${escHtml(l.label)}</div>`).join('')
-      : '';
+    const specialPreview = previewLinkList(specialLinks, '#8a498f');
 
     const wlv = collectWeekLinkValues();
     let section4Preview, section4Heading;
     if (currentFormat === 'weekly') {
       const nw = Math.max(1, parseInt(val('num-weeks')) || 16);
-      const half = Math.ceil(nw/2);
-      const liS = `display:block;padding:0.6rem 1rem;background-color:#e8f4fb;color:#051d3c;font-weight:600;font-size:0.95rem;border-left:4px solid #24abe2;border-radius:0 4px 4px 0;`;
-      const makeI = arr => arr.map(n=>{
+      const half = Math.ceil(nw / 2);
+      const makeItem = n => {
         const filled = !!(wlv[n] && wlv[n].trim());
-        const style = filled ? `${liS}border-left-color:#16a34a;` : liS;
-        return `<li style="margin-bottom:0.4rem;"><div style="${style}">Week ${n}${filled ? ' <span style="font-weight:400;font-size:0.75rem;color:#16a34a;">(linked)</span>' : ''}</div></li>`;
-      }).join('');
-      section4Preview = `<table role="presentation" style="width:100%;border-collapse:collapse;border:none;"><tbody><tr>
-        <td style="width:50%;vertical-align:top;padding-right:0.5rem;border:none;"><ul style="list-style:none;margin:0;padding:0;">${makeI(Array.from({length:half},(_,i)=>i+1))}</ul></td>
-        <td style="width:50%;vertical-align:top;padding-left:0.5rem;border:none;"><ul style="list-style:none;margin:0;padding:0;">${makeI(Array.from({length:nw-half},(_,i)=>i+half+1))}</ul></td>
-      </tr></tbody></table>${specialPreview ? `<div style="margin-top:1rem;">${specialPreview}</div>` : ''}`;
+        const accent = filled ? '#16a34a' : '#24abe2';
+        return `<li style="border-left:4px solid ${accent};padding:0.5rem 0 0.5rem 0.75rem;margin-bottom:0.5rem;"><a href="#" style="color:#051d3c;font-size:1rem;text-decoration:underline;font-weight:700;">Week ${n}</a>${filled ? ' <span style="font-size:0.75rem;color:#16a34a;">(linked)</span>' : ''}</li>`;
+      };
+      const left  = Array.from({length: half}, (_, i) => i + 1).map(makeItem).join('');
+      const right = Array.from({length: nw - half}, (_, i) => i + half + 1).map(makeItem).join('');
+      section4Preview = `<div style="overflow:hidden;">
+        <ul style="list-style:none;margin:0;padding:0;float:left;width:48%;">${left}</ul>
+        <ul style="list-style:none;margin:0 0 0 4%;padding:0;float:left;width:48%;">${right}</ul>
+      </div>${specialPreview ? `<div style="margin-top:1rem;clear:both;">${specialPreview}</div>` : ''}`;
       section4Heading = 'Weekly Course Materials';
     } else {
       const days = getDayNames();
