@@ -282,8 +282,13 @@
     <!-- ── Course Resources (purple buttons, instructor header area) ── -->
     <div>
       <h2 class="panel-title">Course Resources</h2>
-      <p class="panel-subtitle">Optional. Appears below instructor info as purple buttons — tutoring links, office hours booking, etc. Leave empty to omit this section.</p>
+      <p class="panel-subtitle">A <strong>Need Help?</strong> button linking to the Canvas support course is always included here and can't be removed. Add any other purple buttons below — tutoring links, office hours booking, etc. — those stay optional.</p>
       <div style="margin-top:0.75rem;">
+        <div class="link-row" style="margin-bottom:0.3rem; grid-template-columns: 1fr 1.4fr auto; opacity:0.75;">
+          <span style="font-size:0.85rem; font-weight:600; color:var(--purple);">🔒 Need Help?</span>
+          <span style="font-size:0.78rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">mountaloysius.instructure.com/courses/8571</span>
+          <span></span>
+        </div>
         <div class="link-row" style="margin-bottom:0.3rem;">
           <span class="col-head">Button Label</span>
           <span class="col-head">URL</span>
@@ -471,6 +476,11 @@
 
   let currentDept   = 'NUAS';
   let currentFormat = 'weekly';
+
+  // Always-on Course Resources link. Required on every homepage — must
+  // stay first in the purple "Course Resources" list no matter what the
+  // instructor adds or removes in the form.
+  const NEED_HELP_LINK = { label: 'Need Help?', url: 'https://mountaloysius.instructure.com/courses/8571' };
 
   // ─────────────────────────────────────────
   //  Pickers
@@ -763,7 +773,7 @@ ${buildSpecialLinksHTML(specialLinks)}`;
     const f = getCommon();
     const phoneDigits = f.phone.replace(/\D/g, '');
 
-    const resourceLinks  = getLinkRows('resources-list');
+    const resourceLinks  = [NEED_HELP_LINK, ...getLinkRows('resources-list')];
     const mainLinks      = getLinkRows('main-links-list');
     const specialLinks   = getLinkRows('special-links-list');
     const additionalLinks= getLinkRows('additional-links-list');
@@ -911,7 +921,7 @@ ${additionalSection}
 
   function buildPreview() {
     const f = getCommon();
-    const resourceLinks   = getLinkRows('resources-list');
+    const resourceLinks   = [NEED_HELP_LINK, ...getLinkRows('resources-list')];
     const mainLinks       = getLinkRows('main-links-list');
     const specialLinks    = getLinkRows('special-links-list');
     const additionalLinks = getLinkRows('additional-links-list');
